@@ -1,0 +1,13 @@
+- Решение
+
+Пускаме цикъл за всички уникални думи от text.txt, като използваме regex. Проверяваме дали сегашната дума не се съдържа в dic.txt и ако не се правим fuzzy-search със сегашната дума за всеки ред от dic.txt сортираме по най- малко растояние и принтираме най- горния ред. 
+
+
+- tre-grep
+https://stackoverflow.com/questions/30355972/fuzzy-string-matching-with-grep
+
+- Check if string exist in file 
+https://stackoverflow.com/questions/4749330/how-to-test-if-string-exists-in-file-with-bash
+
+- Printf
+https://stackoverflow.com/questions/11193466/echo-without-newline-in-a-shell-script
