@@ -1,10 +1,11 @@
-#include <stdio.h>
-#include <err.h>
-#include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <stdbool.h>
-#include <malloc.h>
+
+#include "SegmentType.h"
+#include "ArgumentType.h"
+#include "Constants.h"
+#include "Parameter.h"
+#include "CommandHandler.h"
 
 void printbincharpad(char c) {
     for (int i = 7; i >= 5; --i) {
@@ -12,16 +13,6 @@ void printbincharpad(char c) {
     }
     putchar('\n');
 }
-
-const int FILE_INDEX = 0;
-
-const int ARGUMENT_INDEX = 1;
-
-const int WRONG_ARGUMENTS_CODE = 1;
-
-const int INVALID_TYPE = 2;
-
-const int ERROR_FILE_CODE = 3;
 
 void printArgumentsHelp() {
     int fd = open("./Help.txt", O_RDONLY);
@@ -33,24 +24,6 @@ void printArgumentsHelp() {
 
     close(fd);
 }
-
-enum SegmentType {
-    Text,
-    Digital,
-    Byte
-};
-
-enum ArgumentType {
-    s,
-    S,
-    g,
-    G,
-    l,
-    L,
-    b,
-    c,
-    h
-};
 
 enum SegmentType getSegmentType(char byte) {
 
@@ -96,107 +69,6 @@ enum ArgumentType getArgumentType(char *byte) {
     }
 }
 
-
-FILE *openFile(char *path, char *modes) {
-    return fopen(path, modes);
-}
-
-FILE *openFileHandleError(char *path, char *modes) {
-
-    FILE *file = openFile(path, modes);
-
-    if (file == NULL) {
-        err(ERROR_FILE_CODE, "Could't open file in read mode! File: %s", path);
-    }
-
-    return file;
-}
-
-
-void readBytesFromFile(char *buffer, size_t bytesCount, FILE *file) {
-    size_t items_read = fread(buffer, bytesCount, 1, file);
-
-    if (items_read == 0) {
-        err(ERROR_FILE_CODE, "Error while reading from file!");
-    }
-}
-
-struct Parameter {
-    char *parameter;
-    char segment;
-    char position;
-    char *validValues;
-};
-
-struct Parameter getParameter(char *param) {
-
-    const char *config = "/home/kristiyan/Fmi/OS/Homework02/config/";
-
-    char *path;
-    path = malloc(strlen(config) + 1 + strlen(param));
-    strcpy(path, config);
-    strcat(path, param);
-
-    FILE *file = openFile(path, "r");
-
-    if (file == NULL) {
-        err(WRONG_ARGUMENTS_CODE, "%s is not a valid parameter", param);
-    }
-
-    char *line;
-    size_t len = 0;
-
-    getline(&line, &len, file);
-
-    struct Parameter parameter;
-
-    parameter.parameter = param;
-    parameter.segment = line[0];
-
-    getline(&line, &len, file);
-    parameter.position = line[0];
-
-    getline(&line, &len, file);
-    parameter.validValues = line;
-
-    return parameter;
-}
-
-void executeCommandS(int argc, char *argv[], FILE *file, bool isCapital) {
-
-    if (argc != 4) {
-        err(WRONG_ARGUMENTS_CODE, "Wrong number of arguments! Current: %d, Desired: %d", argc, 4);
-    }
-
-    char *param = argv[2];
-    char *paramValue = argv[3];
-
-    struct Parameter parameter = getParameter(param);
-
-    char buff[65];
-
-    readBytesFromFile(buff, 64, file);
-}
-
-void executeCommand(int argc, char *argv[], FILE *file, enum ArgumentType argumentType) {
-
-    switch (argumentType) {
-        case s:
-            executeCommandS(argc, argv, file, false);
-        case S:
-            executeCommandS(argc, argv, file, true);
-        case g:
-        case G:
-        case l:
-        case L:
-        case b:
-        case c:
-        case h:
-        default:
-            break;
-    }
-
-}
 
 void handleArguments(int argc, char *argv[]) {
 
