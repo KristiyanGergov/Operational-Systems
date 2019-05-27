@@ -3,8 +3,8 @@
 
 struct Parameter {
     char *parameter;
-    char segment;
-    char position;
+    int segment;
+    int position;
     char *validValues;
 };
 

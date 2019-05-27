@@ -11,4 +11,6 @@ const int INVALID_TYPE = 2;
 
 const int ERROR_FILE_CODE = 3;
 
+const char *config = "/home/kristiyan/Fmi/OS/Homework02/config/";
+
 #endif

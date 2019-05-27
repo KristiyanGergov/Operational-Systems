@@ -30,5 +30,19 @@ void readBytesFromFile(char *buffer, size_t bytesCount, FILE *file) {
     }
 }
 
+void readSegmentN(char *argv[], int n) {
+
+    FILE *fd = openFileHandleError(argv[FILE_INDEX], "rb");
+
+    char str[65];
+    int loop;
+
+    for (loop = 0; loop <= n; ++loop) {
+        if (0 == fgets(str, sizeof(str), fd)) {
+            break;
+        }
+    }
+
+}
 
 #endif

@@ -77,14 +77,14 @@ void handleArguments(int argc, char *argv[]) {
     } else {
 
         if (argc < 2) {
-            errx(1, "Invalid number of parameters");
+            errx(WRONG_ARGUMENTS_CODE, "Invalid number of parameters");
         }
 
-        FILE *file = openFileHandleError(argv[FILE_INDEX], "rb");
+//        FILE *file = openFileHandleError(argv[FILE_INDEX], "rb");
 
         enum ArgumentType argumentType = getArgumentType(argv[ARGUMENT_INDEX]);
 
-        executeCommand(argc, argv, file, argumentType);
+        executeCommand(argc, argv, argumentType);
     }
 
 }
@@ -122,6 +122,6 @@ int main() {
 
 //    getParameter("audio_bitrate");
 
-    char *argv[] = {"/home/kristiyan/Downloads/60000/examples/text.bin", "-s", "device_name", "Gosho pederasa"};
+    char *argv[] = {"/home/kristiyan/Downloads/60000/examples/test.bin", "-s", "device_name", "Gosho pederasa"};
     notMain(4, argv);
 }

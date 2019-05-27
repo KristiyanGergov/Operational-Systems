@@ -8,8 +8,6 @@
 
 struct Parameter getParameter(char *param) {
 
-    const char *config = "/home/kristiyan/Fmi/OS/Homework02/config/";
-
     char *path;
     path = malloc(strlen(config) + 1 + strlen(param));
     strcpy(path, config);
@@ -29,10 +27,10 @@ struct Parameter getParameter(char *param) {
     struct Parameter parameter;
 
     parameter.parameter = param;
-    parameter.segment = line[0];
+    parameter.segment = line[0] - '0';
 
     getline(&line, &len, file);
-    parameter.position = line[0];
+    parameter.position = line[0] - '0';
 
     getline(&line, &len, file);
     parameter.validValues = line;
@@ -41,7 +39,7 @@ struct Parameter getParameter(char *param) {
 }
 
 
-void executeCommandS(int argc, char *argv[], FILE *file, bool isCapital) {
+void executeCommandS(int argc, char *argv[], bool isCapital) {
 
     if (argc != 4) {
         err(WRONG_ARGUMENTS_CODE, "Wrong number of arguments! Current: %d, Desired: %d", argc, 4);
@@ -51,19 +49,16 @@ void executeCommandS(int argc, char *argv[], FILE *file, bool isCapital) {
     char *paramValue = argv[3];
 
     struct Parameter parameter = getParameter(param);
-
-    char buff[65];
-
-    readBytesFromFile(buff, 64, file);
+    readSegmentN(argv, parameter.segment);
 }
 
-void executeCommand(int argc, char *argv[], FILE *file, enum ArgumentType argumentType) {
+void executeCommand(int argc, char *argv[], enum ArgumentType argumentType) {
 
     switch (argumentType) {
         case s:
-            executeCommandS(argc, argv, file, false);
+            executeCommandS(argc, argv, false);
         case S:
-            executeCommandS(argc, argv, file, true);
+            executeCommandS(argc, argv, true);
         case g:
         case G:
         case l:
@@ -76,4 +71,5 @@ void executeCommand(int argc, char *argv[], FILE *file, enum ArgumentType argume
     }
 
 }
+
 #endif
