@@ -67,15 +67,10 @@ void handleArguments(int argc, char *argv[]) {
 int notMain(int argc, char *argv[]) {
 
     handleArguments(argc, argv);
-    char *path = argv[FILE_INDEX];
-
     return 0;
 }
 
 int main() {
-
-//    getParameter("audio_bitrate");
-//    replace(2, "pesho\n");
-    char *argv[] = {"/home/kristiyan/Fmi/OS/Homework02/Resourses/test.bin", "-s", "audio_bitrate", "tt"};
-    notMain(4, argv);
+    char *argv[] = {"/home/kristiyan/Fmi/OS/Homework02/Resourses/tt.bin", "-G", "device_name"};
+    notMain(3, argv);
 }

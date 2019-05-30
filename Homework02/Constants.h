@@ -9,3 +9,7 @@
 #define ERROR_FILE_CODE 3
 
 #define CONFIG_PATH "/home/kristiyan/Fmi/OS/Homework02/config/"
+
+#define READ_BINARY "rb"
+
+#define WRITE_BINARY "wb"

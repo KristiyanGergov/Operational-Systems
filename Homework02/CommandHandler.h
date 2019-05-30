@@ -42,7 +42,7 @@ struct Parameter getParameter(char *param) {
     return parameter;
 }
 
-struct Position getPositionToReplace(struct Parameter parameter, enum SegmentType type) {
+struct Position getPositionOfParameter(struct Parameter parameter, enum SegmentType type) {
 
     struct Position position;
 
@@ -50,7 +50,9 @@ struct Position getPositionToReplace(struct Parameter parameter, enum SegmentTyp
 
     position.dataBytePosition = segmentByte + META_LENGTH + (parameter.position * type);
     position.metaBitPosition = parameter.position % META_LENGTH;
-    position.metaBytePosition = segmentByte + META_TYPE_LENGTH + (parameter.position % META_LENGTH);
+    position.metaByteParameterPosition = segmentByte + META_TYPE_LENGTH + (parameter.position % META_LENGTH);
+    position.segmentType = type;
+    position.metaByteTypePosition = segmentByte;
 
     return position;
 }
@@ -70,14 +72,14 @@ void replace(char *fileName, char *newValue, struct Position position, bool isCa
     //todo rename
     char *tempPath = "/home/kristiyan/Fmi/OS/Homework02/Resourses/temp.txt";
 
-    FILE *file = openFileHandleError(fileName, "rb");
-    FILE *temp = openFileHandleError(tempPath, "wb");
+    FILE *file = openFileHandleError(fileName, READ_BINARY);
+    FILE *temp = openFileHandleError(tempPath, WRITE_BINARY);
 
     char firstHalf[position.dataBytePosition];
     readBytesFromFile(firstHalf, (size_t) position.dataBytePosition, file);
 
     if (!isCapital) {
-        firstHalf[position.metaBytePosition] |= 1 << (META_LENGTH - position.metaBitPosition - 1);
+        firstHalf[position.metaByteParameterPosition] |= 1 << (META_LENGTH - position.metaBitPosition - 1);
     }
 
     writeBytesToFile(firstHalf, sizeof(firstHalf), temp);
@@ -102,7 +104,7 @@ void replace(char *fileName, char *newValue, struct Position position, bool isCa
 
 enum SegmentType getSegmentType(char *argv[], struct Parameter parameter) {
 
-    FILE *file = openFileHandleError(argv[FILE_INDEX], "rb");
+    FILE *file = openFileHandleError(argv[FILE_INDEX], READ_BINARY);
     fseek(file, parameter.segment * SEGMENT_LENGTH + parameter.segment, SEEK_SET);
     char typeChar;
     readBytesFromFile(&typeChar, 1, file);
@@ -121,44 +123,78 @@ enum SegmentType getSegmentType(char *argv[], struct Parameter parameter) {
 
 }
 
-void executeCommandS(int argc, char *argv[], bool isCapital) {
+struct Position executePosition(int argc, char *argv[], int desiredArgc) {
 
-    if (argc != 4) {
-        err(WRONG_ARGUMENTS_CODE, "Wrong number of arguments! Current: %d, Desired: %d", argc, 4);
+    if (argc != desiredArgc) {
+        err(WRONG_ARGUMENTS_CODE, "Wrong number of arguments! Current: %d, Desired: %d", argc, desiredArgc);
     }
 
     char *param = argv[PARAM_INDEX];
-    char *paramValue = argv[PARAM_VALUE_INDEX];
 
     struct Parameter parameter = getParameter(param);
 
     enum SegmentType type = getSegmentType(argv, parameter);
 
-    if (strlen(paramValue) > type) {
-        err(WRONG_ARGUMENTS_CODE, "The maximum length of the parameter is: %d. Current: %zd", type, sizeof(paramValue));
-    }
-
-    struct Position positionToReplace = getPositionToReplace(parameter, type);
-
-    replace(argv[FILE_INDEX], paramValue, positionToReplace, isCapital, type);
+    return getPositionOfParameter(parameter, type);
 }
 
-void executeCommandG(int argc, char* argv[], bool isCapital) {
+void executeCommandS(int argc, char *argv[], bool isCapital) {
 
-    if (argc != 3) {
-        err(WRONG_ARGUMENTS_CODE, "Wrong number of arguments! Current: %d, Desired: %d", argc, 3);
+    struct Position positionToReplace = executePosition(argc, argv, 4);
+
+    char *paramValue = argv[PARAM_VALUE_INDEX];
+
+    if (strlen(paramValue) > positionToReplace.segmentType) {
+        err(WRONG_ARGUMENTS_CODE, "The maximum length of the parameter is: %d. Current: %zd",
+            positionToReplace.segmentType, sizeof(paramValue));
     }
 
-    char *param = argv[PARAM_INDEX];
+    replace(argv[FILE_INDEX], paramValue, positionToReplace, isCapital, positionToReplace.segmentType);
+}
 
-    struct Parameter parameter = getParameter(param);
+int checkIfOptionIsActive(FILE *file, struct Position position) {
 
-    enum SegmentType type = getSegmentType(argv, parameter);
+    fseek(file, position.metaByteParameterPosition, SEEK_SET);
 
-    struct Position position = getPositionToReplace(parameter, type);
+    char c;
 
+    readBytesFromFile(&c, 1, file);
+    fseek(file, 0, SEEK_SET);
+    return c & (1 << (META_LENGTH - position.metaBitPosition - 1));
+}
 
+void printParameter(FILE *file, struct Position position) {
+    fseek(file, position.dataBytePosition, SEEK_SET);
 
+    char c;
+
+    int maxCharsToRead = position.segmentType;
+    int charsRead = 0;
+
+    readBytesFromFile(&c, 1, file);
+
+    while (c && charsRead < maxCharsToRead) {
+        charsRead++;
+        printf("%c", c);
+        readBytesFromFile(&c, 1, file);
+    }
+}
+
+void executeCommandG(int argc, char *argv[], bool isCapital) {
+
+    struct Position position = executePosition(argc, argv, 3);
+
+    FILE *file = openFileHandleError(argv[FILE_INDEX], READ_BINARY);
+
+    if (!isCapital) {
+        if (!checkIfOptionIsActive(file, position)) {
+            fclose(file);
+            err(ERROR_FILE_CODE, "Option not activated!");
+        }
+    }
+
+    printParameter(file, position);
+    fclose(file);
 }
 
 void executeCommand(int argc, char *argv[], enum ArgumentType argumentType) {
@@ -173,8 +209,10 @@ void executeCommand(int argc, char *argv[], enum ArgumentType argumentType) {
             break;
         case g:
             executeCommandG(argc, argv, false);
+            break;
         case G:
             executeCommandG(argc, argv, true);
+            break;
         case l:
         case L:
         case b:

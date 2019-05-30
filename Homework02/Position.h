@@ -1,5 +1,7 @@
 struct Position {
     int metaBitPosition;
-    int metaBytePosition;
+    int metaByteParameterPosition;
+    int metaByteTypePosition;
     int dataBytePosition;
+    enum SegmentType segmentType;
 };
