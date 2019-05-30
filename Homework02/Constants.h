@@ -1,16 +1,11 @@
-#ifndef HOMEWORK02_CONSTANTS_H
-#define HOMEWORK02_CONSTANTS_H
+#define FILE_INDEX 0
 
-const int FILE_INDEX = 0;
+#define ARGUMENT_INDEX 1
 
-const int ARGUMENT_INDEX = 1;
+#define WRONG_ARGUMENTS_CODE 1
 
-const int WRONG_ARGUMENTS_CODE = 1;
+#define INVALID_TYPE 2
 
-const int INVALID_TYPE = 2;
+#define ERROR_FILE_CODE 3
 
-const int ERROR_FILE_CODE = 3;
-
-const char *config = "/home/kristiyan/Fmi/OS/Homework02/config/";
-
-#endif
+#define CONFIG_PATH "/home/kristiyan/Fmi/OS/Homework02/config/"

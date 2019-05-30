@@ -1,6 +1,3 @@
-#ifndef HOMEWORK02_FILEMANAGER_H
-#define HOMEWORK02_FILEMANAGER_H
-
 #include <bits/types/FILE.h>
 #include <stdio.h>
 #include <err.h>
@@ -11,8 +8,6 @@ FILE *openFile(char *path, char *modes) {
 }
 
 FILE *openFileHandleError(char *path, char *modes) {
-
-
     FILE *file = openFile(path, modes);
 
     if (file == NULL) {
@@ -30,19 +25,7 @@ void readBytesFromFile(char *buffer, size_t bytesCount, FILE *file) {
     }
 }
 
-void readSegmentN(char *argv[], int n) {
+void writeBytesToFile(char* buffer, size_t bytesCount, FILE* file) {
 
-    FILE *fd = openFileHandleError(argv[FILE_INDEX], "rb");
-
-    char str[65];
-    int loop;
-
-    for (loop = 0; loop <= n; ++loop) {
-        if (0 == fgets(str, sizeof(str), fd)) {
-            break;
-        }
-    }
-
+    fwrite(buffer, bytesCount, 1, file);
 }
-
-#endif

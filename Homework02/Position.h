@@ -1,14 +1,5 @@
-//
-// Created by kristiyan on 30.05.19.
-//
-
-#ifndef HOMEWORK02_POSITION_H
-#define HOMEWORK02_POSITION_H
-
-
-class Position{
-
+struct Position {
+    int metaBitPosition;
+    int metaBytePosition;
+    int dataBytePosition;
 };
-
-
-#endif //HOMEWORK02_POSITION_H

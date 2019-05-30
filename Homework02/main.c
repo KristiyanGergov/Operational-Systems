@@ -7,37 +7,15 @@
 #include "Parameter.h"
 #include "CommandHandler.h"
 
-void printbincharpad(char c) {
-    for (int i = 7; i >= 5; --i) {
-        putchar((c & (1 << i)) ? '1' : '0');
-    }
-    putchar('\n');
-}
-
 void printArgumentsHelp() {
     int fd = open("./Help.txt", O_RDONLY);
-
+    //todo
     char c;
     while (read(fd, &c, 1)) {
         printf("%c", c);
     }
 
     close(fd);
-}
-
-enum SegmentType getSegmentType(char byte) {
-
-    switch (byte) {
-        case 0:
-            return Text;
-        case 1:
-            return Digital;
-        case 2:
-            return Byte;
-        default:
-            err(INVALID_TYPE, "Invalid type: %u. Possible types: 0, 1, 2", byte);
-    }
-
 }
 
 enum ArgumentType getArgumentType(char *byte) {
@@ -69,7 +47,6 @@ enum ArgumentType getArgumentType(char *byte) {
     }
 }
 
-
 void handleArguments(int argc, char *argv[]) {
 
     if (strcmp(argv[0], "-h") == 0) {
@@ -79,8 +56,6 @@ void handleArguments(int argc, char *argv[]) {
         if (argc < 2) {
             errx(WRONG_ARGUMENTS_CODE, "Invalid number of parameters");
         }
-
-//        FILE *file = openFileHandleError(argv[FILE_INDEX], "rb");
 
         enum ArgumentType argumentType = getArgumentType(argv[ARGUMENT_INDEX]);
 
@@ -94,34 +69,13 @@ int notMain(int argc, char *argv[]) {
     handleArguments(argc, argv);
     char *path = argv[FILE_INDEX];
 
-    FILE *file = openFileHandleError(path, "rb"); //r for read, b for binary
-
-    char metaType;
-    char metaParams[7];
-
-    readBytesFromFile(&metaType, sizeof(metaType), file);
-
-    enum SegmentType segmentType = getSegmentType(metaType);
-
-    readBytesFromFile(metaParams, sizeof(metaParams), file);
-
-
-    printbincharpad(metaParams[0]);
-
-
-//    while (read(fd1, &buff, 1)) {
-////        write(1, &buff, 1);
-//        printbincharpad(buff);
-////        count++;
-////        printf("%u\n", buff);
-//    }
     return 0;
 }
 
 int main() {
 
 //    getParameter("audio_bitrate");
-
-    char *argv[] = {"/home/kristiyan/Downloads/60000/examples/test.bin", "-s", "device_name", "Gosho pederasa"};
+//    replace(2, "pesho\n");
+    char *argv[] = {"/home/kristiyan/Fmi/OS/Homework02/Resourses/test.bin", "-s", "audio_bitrate", "tt"};
     notMain(4, argv);
 }

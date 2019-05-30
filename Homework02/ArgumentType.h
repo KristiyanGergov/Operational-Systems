@@ -1,6 +1,3 @@
-#ifndef HOMEWORK02_ARGUMENTTYPE_H
-#define HOMEWORK02_ARGUMENTTYPE_H
-
 enum ArgumentType {
     s,
     S,
@@ -12,6 +9,3 @@ enum ArgumentType {
     c,
     h
 };
-
-
-#endif

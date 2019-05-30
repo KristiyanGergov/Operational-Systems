@@ -1,10 +1,5 @@
-#ifndef HOMEWORK02_SEGMENTTYPE_H
-#define HOMEWORK02_SEGMENTTYPE_H
-
 enum SegmentType {
-    Text,
-    Digital,
-    Byte
+    Text = 16,
+    Digital = 4,
+    Byte = 1
 };
-
-#endif
