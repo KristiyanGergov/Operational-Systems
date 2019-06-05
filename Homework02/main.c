@@ -74,6 +74,6 @@ int main() {
 //    char *argv[] = {"/home/kristiyan/Fmi/OS/Homework02/Resourses/tt.bin", "-G", "device_name"};
 //    notMain(3, argv);
 
-    char *argv[] = {"/home/kristiyan/Fmi/OS/Homework02/Resourses/tt.bin", "-s", "device_name", "Device_n1"};
+    char *argv[] = {"/home/kristiyan/Fmi/OS/Homework02/Resourses/tt.bin", "-l", "device_name", "serial_baudrate"};
     notMain(4, argv);
 }

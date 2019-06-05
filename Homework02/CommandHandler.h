@@ -126,9 +126,9 @@ void replace(char *fileName, char *newValue, struct Position position, bool isCa
     finishTempFile(file, temp, fileName);
 }
 
-enum SegmentType getSegmentType(char *argv[], struct Parameter parameter) {
+enum SegmentType getSegmentType(char *path, struct Parameter parameter) {
 
-    FILE *file = openFileHandleError(argv[FILE_INDEX], READ_BINARY);
+    FILE *file = openFileHandleError(path, READ_BINARY);
     fseek(file, parameter.segment * SEGMENT_LENGTH + parameter.segment, SEEK_SET);
     char typeChar;
     readBytesFromFile(&typeChar, ONE, file);
@@ -152,20 +152,18 @@ void assertEqualsNumberOfArguments(int actual, int expected) {
     }
 }
 
-struct Position executePosition(char *argv[]) {
-
-    char *param = argv[PARAM_INDEX];
+struct Position executePosition(char *path, char *param) {
 
     struct Parameter parameter = getParameter(param);
 
-    enum SegmentType type = getSegmentType(argv, parameter);
+    enum SegmentType type = getSegmentType(path, parameter);
 
     return getPositionOfParameter(parameter, type);
 }
 
 void executeCommandS(char *argv[], bool isCapital) {
 
-    struct Position positionToReplace = executePosition(argv);
+    struct Position positionToReplace = executePosition(argv[FILE_INDEX], argv[PARAM_INDEX]);
 
     char *paramValue = argv[PARAM_VALUE_INDEX];
 
@@ -203,11 +201,13 @@ void printParameter(FILE *file, struct Position position) {
         printf("%c", c);
         readBytesFromFile(&c, 1, file);
     }
+    printf("\n");
+    fseek(file, 0, SEEK_SET);
 }
 
 void executeCommandG(char *argv[], bool isCapital) {
 
-    struct Position position = executePosition(argv);
+    struct Position position = executePosition(argv[FILE_INDEX], argv[PARAM_INDEX]);
 
     FILE *file = openFileHandleError(argv[FILE_INDEX], READ_BINARY);
 
@@ -222,10 +222,16 @@ void executeCommandG(char *argv[], bool isCapital) {
     fclose(file);
 }
 
-void executeCommandL(char *argv[], bool isCapital) {
-    struct Position position = executePosition(argv);
+void executeCommandL(char *argv[], int argc, bool isCapital) {
 
-    FILE *file = openFileHandleError(argv[FILE_INDEX], READ_BINARY);
+    for (int i = 2; i < argc; ++i) {
+        struct Position position = executePosition(argv[FILE_INDEX], argv[i]);
+        FILE *file = openFileHandleError(argv[FILE_INDEX], READ_BINARY);
+
+        if (checkIfOptionIsActive(file, position) || isCapital) {
+            printParameter(file, position);
+        }
+    }
 }
 
 void executeCommandB(char *argv[]) {
@@ -235,7 +241,7 @@ void executeCommandB(char *argv[]) {
         err(WRONG_ARGUMENTS_CODE, "Parameter must be either 0 or 1!");
     }
 
-    struct Position position = executePosition(argv);
+    struct Position position = executePosition(argv[FILE_INDEX], argv[PARAM_INDEX]);
 
     FILE *file = openFileHandleError(argv[FILE_INDEX], READ_BINARY);
     FILE *temp = openFileHandleError(TEMP_PATH, WRITE_BINARY);
@@ -255,7 +261,6 @@ void executeCommandB(char *argv[]) {
 void executeCommandC(int argc, char *argv[]) {
 
 }
-
 
 void executeCommand(int argc, char *argv[], enum ArgumentType argumentType) {
 
@@ -277,10 +282,10 @@ void executeCommand(int argc, char *argv[], enum ArgumentType argumentType) {
             executeCommandG(argv, true);
             break;
         case l:
-            executeCommandL(argv, false);
+            executeCommandL(argv, argc, false);
             break;
         case L:
-            executeCommandL(argv, true);
+            executeCommandL(argv, argc, true);
             break;
         case b:
             executeCommandB(argv);
