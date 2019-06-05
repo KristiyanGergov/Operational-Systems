@@ -13,13 +13,11 @@
 #define PARAM_VALUE_INDEX 3
 #define TEMP_PATH "/home/kristiyan/Fmi/OS/Homework02/Resourses/temp.txt"
 
-int charToInt(char c)
-{
+int charToInt(char c) {
     return c - '0';
 }
 
-struct Parameter getParameter(char *param)
-{
+struct Parameter getParameter(char *param) {
 
     char *path;
     path = malloc(strlen(CONFIG_PATH) + ONE + strlen(param));
@@ -28,8 +26,7 @@ struct Parameter getParameter(char *param)
 
     FILE *file = openFile(path, "r");
 
-    if (file == NULL)
-    {
+    if (file == NULL) {
         err(WRONG_ARGUMENTS_CODE, "%s is not a valid parameter", param);
     }
 
@@ -52,8 +49,7 @@ struct Parameter getParameter(char *param)
     return parameter;
 }
 
-struct Position getPositionOfParameter(struct Parameter parameter, enum SegmentType type)
-{
+struct Position getPositionOfParameter(struct Parameter parameter, enum SegmentType type) {
 
     struct Position position;
 
@@ -68,30 +64,44 @@ struct Position getPositionOfParameter(struct Parameter parameter, enum SegmentT
     return position;
 }
 
-void print(char a)
-{
-    for (int i = 0; i < BITS_IN_BYTE; i++)
-    {
+void print(int a) {
+    for (int i = 0; i < BITS_IN_BYTE; i++) {
         printf("%d", ((a << i) & 0x80) != 0);
     }
     printf("\n");
 }
 
-void changeBitParameter(char *data, struct Position position, int toBit)
-{
+void changeBitParameter(char *data, struct Position position, int toBit) {
 
-    unsigned long newBit = !!toBit;
+    char cPosition = (char) (META_LENGTH - position.metaBitPosition - 1);
+
+    char mask = (char) 1 << cPosition;
+
     char c = data[position.metaByteParameterPosition];
-    c ^= (-newBit ^ c) & (1UL << (META_LENGTH - position.metaBitPosition - ONE));
+    print(data[position.metaByteParameterPosition]);
+
+    data[position.metaByteParameterPosition] = (char) ((c & ~mask) | ((toBit << cPosition) & mask));
+    print(data[position.metaByteParameterPosition]);
 }
 
-void replace(char *fileName, char *newValue, struct Position position, bool isCapital)
-{
+void finishTempFile(FILE *file, FILE *temp, char *fileName) {
+    char c;
+
+    while (fread(&c, ONE, ONE, file)) {
+        writeBytesToFile(&c, ONE, temp);
+    }
+
+    fclose(file);
+    fclose(temp);
+    remove(fileName);
+    rename(TEMP_PATH, fileName);
+}
+
+void replace(char *fileName, char *newValue, struct Position position, bool isCapital) {
 
     enum SegmentType type = position.segmentType;
 
-    if (strlen(newValue) > type)
-    {
+    if (strlen(newValue) > type) {
         err(WRONG_ARGUMENTS_CODE, "Maximum length of value is %zd. Current %d", strlen(newValue), type);
     }
 
@@ -99,10 +109,9 @@ void replace(char *fileName, char *newValue, struct Position position, bool isCa
     FILE *temp = openFileHandleError(TEMP_PATH, WRITE_BINARY);
 
     char firstHalf[position.dataBytePosition];
-    readBytesFromFile(firstHalf, (size_t)position.dataBytePosition, file);
+    readBytesFromFile(firstHalf, (size_t) position.dataBytePosition, file);
 
-    if (!isCapital)
-    {
+    if (!isCapital) {
         changeBitParameter(firstHalf, position, ONE);
     }
 
@@ -117,8 +126,7 @@ void replace(char *fileName, char *newValue, struct Position position, bool isCa
     finishTempFile(file, temp, fileName);
 }
 
-enum SegmentType getSegmentType(char *argv[], struct Parameter parameter)
-{
+enum SegmentType getSegmentType(char *argv[], struct Parameter parameter) {
 
     FILE *file = openFileHandleError(argv[FILE_INDEX], READ_BINARY);
     fseek(file, parameter.segment * SEGMENT_LENGTH + parameter.segment, SEEK_SET);
@@ -126,29 +134,25 @@ enum SegmentType getSegmentType(char *argv[], struct Parameter parameter)
     readBytesFromFile(&typeChar, ONE, file);
     fclose(file);
 
-    switch (typeChar)
-    {
-    case 0:
-        return Text;
-    case 1:
-        return Digital;
-    case 2:
-        return Byte;
-    default:
-        err(INVALID_TYPE, "Invalid type: %u. Possible types: 0, 1, 2", typeChar);
+    switch (typeChar) {
+        case 0:
+            return Text;
+        case 1:
+            return Digital;
+        case 2:
+            return Byte;
+        default:
+            err(INVALID_TYPE, "Invalid type: %u. Possible types: 0, 1, 2", typeChar);
     }
 }
 
-bool assertEqualsNumberOfArguments(int actual, int expected)
-{
-    if (expected != actual)
-    {
+void assertEqualsNumberOfArguments(int actual, int expected) {
+    if (expected != actual) {
         err(WRONG_ARGUMENTS_CODE, "Wrong number of arguments! Current: %d, Desired: %d", actual, expected);
     }
 }
 
-struct Position executePosition(int argc, char *argv[])
-{
+struct Position executePosition(char *argv[]) {
 
     char *param = argv[PARAM_INDEX];
 
@@ -159,15 +163,13 @@ struct Position executePosition(int argc, char *argv[])
     return getPositionOfParameter(parameter, type);
 }
 
-void executeCommandS(int argc, char *argv[], bool isCapital)
-{
+void executeCommandS(char *argv[], bool isCapital) {
 
-    struct Position positionToReplace = executePosition(argc, argv);
+    struct Position positionToReplace = executePosition(argv);
 
     char *paramValue = argv[PARAM_VALUE_INDEX];
 
-    if (strlen(paramValue) > positionToReplace.segmentType)
-    {
+    if (strlen(paramValue) > positionToReplace.segmentType) {
         err(WRONG_ARGUMENTS_CODE, "The maximum length of the parameter is: %d. Current: %zd",
             positionToReplace.segmentType, sizeof(paramValue));
     }
@@ -175,8 +177,7 @@ void executeCommandS(int argc, char *argv[], bool isCapital)
     replace(argv[FILE_INDEX], paramValue, positionToReplace, isCapital);
 }
 
-int checkIfOptionIsActive(FILE *file, struct Position position)
-{
+int checkIfOptionIsActive(FILE *file, struct Position position) {
 
     fseek(file, position.metaByteParameterPosition, SEEK_SET);
 
@@ -187,8 +188,7 @@ int checkIfOptionIsActive(FILE *file, struct Position position)
     return c & (1 << (META_LENGTH - position.metaBitPosition - 1));
 }
 
-void printParameter(FILE *file, struct Position position)
-{
+void printParameter(FILE *file, struct Position position) {
     fseek(file, position.dataBytePosition, SEEK_SET);
 
     char c;
@@ -198,25 +198,21 @@ void printParameter(FILE *file, struct Position position)
 
     readBytesFromFile(&c, 1, file);
 
-    while (c && charsRead < maxCharsToRead)
-    {
+    while (c && charsRead < maxCharsToRead) {
         charsRead++;
         printf("%c", c);
         readBytesFromFile(&c, 1, file);
     }
 }
 
-void executeCommandG(int argc, char *argv[], bool isCapital)
-{
+void executeCommandG(char *argv[], bool isCapital) {
 
-    struct Position position = executePosition(argc, argv);
+    struct Position position = executePosition(argv);
 
     FILE *file = openFileHandleError(argv[FILE_INDEX], READ_BINARY);
 
-    if (!isCapital)
-    {
-        if (!checkIfOptionIsActive(file, position))
-        {
+    if (!isCapital) {
+        if (!checkIfOptionIsActive(file, position)) {
             fclose(file);
             err(ERROR_FILE_CODE, "Option not activated!");
         }
@@ -226,91 +222,71 @@ void executeCommandG(int argc, char *argv[], bool isCapital)
     fclose(file);
 }
 
-void executeCommandL(int argc, char *argv[], bool isCapital)
-{
-    struct Position position = executePosition(argc, argv);
+void executeCommandL(char *argv[], bool isCapital) {
+    struct Position position = executePosition(argv);
 
     FILE *file = openFileHandleError(argv[FILE_INDEX], READ_BINARY);
 }
 
-void finishTempFile(FILE *file, FILE *temp, char* fileName)
-{
-    char c;
-
-    while (fread(&c, ONE, ONE, file))
-    {
-        writeBytesToFile(&c, ONE, temp);
-    }
-
-    fclose(file);
-    fclose(temp);
-    remove(fileName);
-    rename(TEMP_PATH, fileName);
-}
-
-void executeCommandB(int argc, char *argv[])
-{
+void executeCommandB(char *argv[]) {
     char *paramValue = argv[PARAM_VALUE_INDEX];
 
-    if (paramValue != '0' || paramValue != '1')
-    {
+    if (paramValue[0] != '0' && paramValue[0] != '1') {
         err(WRONG_ARGUMENTS_CODE, "Parameter must be either 0 or 1!");
     }
 
-    struct Position position = executePosition(argc, argv);
+    struct Position position = executePosition(argv);
 
     FILE *file = openFileHandleError(argv[FILE_INDEX], READ_BINARY);
     FILE *temp = openFileHandleError(TEMP_PATH, WRITE_BINARY);
 
     char firstHalf[position.dataBytePosition];
-    readBytesFromFile(firstHalf, (size_t)position.dataBytePosition, file);
+    readBytesFromFile(firstHalf, (size_t) position.dataBytePosition, file);
 
-    changeBitParameter(firstHalf, position, charToInt(&paramValue));
+    changeBitParameter(firstHalf, position, charToInt(paramValue[0]));
 
     writeBytesToFile(firstHalf, sizeof(firstHalf), temp);
 
     fseek(file, position.dataBytePosition, SEEK_SET);
 
-    finishTempFile(file, temp, fileName);
+    finishTempFile(file, temp, argv[FILE_INDEX]);
 }
 
-void executeCommandC(int argc, char* argv[]) {
-    
+void executeCommandC(int argc, char *argv[]) {
+
 }
 
 
-void executeCommand(int argc, char *argv[], enum ArgumentType argumentType)
-{
+void executeCommand(int argc, char *argv[], enum ArgumentType argumentType) {
 
-    switch (argumentType)
-    {
-    case s:
-        assertEqualsNumberOfArguments(argc, 4);
-        executeCommandS(argc, argv, false);
-        break;
-    case S:
-        assertEqualsNumberOfArguments(argc, 4);
-        executeCommandS(argc, argv, true);
-        break;
-    case g:
-        assertEqualsNumberOfArguments(argc, 3);
-        executeCommandG(argc, argv, false);
-        break;
-    case G:
-        assertEqualsNumberOfArguments(argc, 3);
-        executeCommandG(argc, argv, true);
-        break;
-    case l:
-        executeCommandL(argc, argv, false);
-        break;
-    case L:
-        executeCommandL(argc, argv, true);
-        break;
-    case b:
-        executeCommandB(argc, argv);
-        break;
-    case c:
-    default:
-        break;
+    switch (argumentType) {
+        case s:
+            assertEqualsNumberOfArguments(argc, 4);
+            executeCommandS(argv, false);
+            break;
+        case S:
+            assertEqualsNumberOfArguments(argc, 4);
+            executeCommandS(argv, true);
+            break;
+        case g:
+            assertEqualsNumberOfArguments(argc, 3);
+            executeCommandG(argv, false);
+            break;
+        case G:
+            assertEqualsNumberOfArguments(argc, 3);
+            executeCommandG(argv, true);
+            break;
+        case l:
+            executeCommandL(argv, false);
+            break;
+        case L:
+            executeCommandL(argv, true);
+            break;
+        case b:
+            executeCommandB(argv);
+            break;
+        case c:
+        default:
+            break;
     }
 }
