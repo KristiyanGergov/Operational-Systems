@@ -13,3 +13,5 @@
 #define READ_BINARY "rb"
 
 #define WRITE_BINARY "wb"
+
+#define OPEN_WRITE_BINARY "w+"

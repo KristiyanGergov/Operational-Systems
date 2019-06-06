@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <malloc.h>
 #include <string.h>
+#include <dirent.h>
 #include "FileManager.h"
 #include "Position.h"
 
@@ -224,6 +225,26 @@ void executeCommandG(char *argv[], bool isCapital) {
 
 void executeCommandL(char *argv[], int argc, bool isCapital) {
 
+    if (argc == 2) {
+        DIR *dir;
+        struct dirent *ent;
+        if ((dir = opendir("/home/kristiyan/Fmi/OS/Homework02/config"))) {
+            while ((ent = readdir(dir)) != NULL) {
+                if (strlen(ent->d_name) <= 2)
+                    continue;
+
+                struct Position position = executePosition(argv[FILE_INDEX], ent->d_name);
+                FILE *file = openFileHandleError(argv[FILE_INDEX], READ_BINARY);
+
+                if (checkIfOptionIsActive(file, position) || isCapital) {
+                    printParameter(file, position);
+                }
+            }
+        }
+        closedir(dir);
+        return;
+    }
+
     for (int i = 2; i < argc; ++i) {
         struct Position position = executePosition(argv[FILE_INDEX], argv[i]);
         FILE *file = openFileHandleError(argv[FILE_INDEX], READ_BINARY);
@@ -258,7 +279,43 @@ void executeCommandB(char *argv[]) {
     finishTempFile(file, temp, argv[FILE_INDEX]);
 }
 
+void kur(char *arr, char *path) {
+    readBytesFromFile(arr, 64, openFileHandleError(path, READ_BINARY));
+}
+
 void executeCommandC(int argc, char *argv[]) {
+
+    FILE *file = openFileHandleError(argv[FILE_INDEX], OPEN_WRITE_BINARY);
+
+    int length = (argc - 2) / 2;
+
+    char arr[length][65];
+
+    for (int i = 2; i < argc; i += 2) {
+
+        int index = charToInt(argv[i][0]);
+        char type = argv[i + 1][0];
+
+        switch (type) {
+            case 't':
+                kur(arr[index], "/home/kristiyan/Fmi/OS/Homework02/Resourses/def_text.bin");
+                break;
+            case 'n':
+                kur(arr[index], "/home/kristiyan/Fmi/OS/Homework02/Resourses/def_num.bin");
+                break;
+            case 'b':
+                kur(arr[index], "/home/kristiyan/Fmi/OS/Homework02/Resourses/def_byte.bin");
+                break;
+
+            default:
+                break;
+        }
+
+    }
+
+    for (int j = 0; j < length; ++j) {
+        writeBytesToFile(arr[j], 64, file);
+    }
 
 }
 
@@ -291,6 +348,8 @@ void executeCommand(int argc, char *argv[], enum ArgumentType argumentType) {
             executeCommandB(argv);
             break;
         case c:
+            executeCommandC(argc, argv);
+            break;
         default:
             break;
     }
