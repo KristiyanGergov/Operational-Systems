@@ -3,7 +3,6 @@
 
 #include "SegmentType.h"
 #include "ArgumentType.h"
-#include "Constants.h"
 #include "Parameter.h"
 #include "CommandHandler.h"
 
@@ -72,6 +71,9 @@ int notMain(int argc, char *argv[]) {
 
 int main() {
 
-    char *argv[] = {"/home/kristiyan/Fmi/OS/Homework02/Resourses/new.bin" ,"-c", "0", "t", "1", "b", "2", "t", "3", "n"};
-    notMain(10, argv);
+    char* argv[] = {"/home/kristiyan/Fmi/OS/Homework02/Resourses/text.bin", "-s", "device_name", "$@#R"};
+    notMain(4, argv);
+
+//    char *argv[] = {"/home/kristiyan/Fmi/OS/Homework02/Resourses/new.bin" ,"-c", "0", "t", "1", "b", "2", "t", "3", "n"};
+//    notMain(10, argv);
 }

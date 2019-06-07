@@ -14,4 +14,14 @@
 
 #define WRITE_BINARY "wb"
 
-#define OPEN_WRITE_BINARY "w+"
+#define WRITE_CREATE "w+"
+
+#define CONFIG_DIR_PATH "/home/kristiyan/Fmi/OS/Homework02/config"
+
+#define DEF_TEXT_FILE_PATH "/home/kristiyan/Fmi/OS/Homework02/Resourses/def_text.bin"
+
+#define DEF_NUM_FILE_PATH "/home/kristiyan/Fmi/OS/Homework02/Resourses/def_num.bin"
+
+#define DEF_BYTE_FILE_PATH "/home/kristiyan/Fmi/OS/Homework02/Resourses/def_byte.bin"
+
+#define TEMP_PATH "/home/kristiyan/Fmi/OS/Homework02/Resourses/temp.txt"

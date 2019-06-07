@@ -1,6 +1,7 @@
+#pragma once
+
 struct Parameter {
-    char *parameter;
     int segment;
     int position;
-    char *validValues;
+    char *regex;
 };

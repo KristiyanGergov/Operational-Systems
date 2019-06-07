@@ -1,3 +1,5 @@
+#pragma once
+
 enum SegmentType {
     Text = 16,
     Digital = 4,

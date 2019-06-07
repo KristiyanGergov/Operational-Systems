@@ -2,17 +2,16 @@
 #include <malloc.h>
 #include <string.h>
 #include <dirent.h>
-#include "FileManager.h"
+#include <regex.h>
+#include <stdlib.h>
 #include "Position.h"
+#include "OutputHandler.h"
+#include "BitsManipulation.h"
 
-#define BITS_IN_BYTE 8
-#define ONE 1
 #define META_TYPE_LENGTH 1
-#define META_LENGTH 8
 #define SEGMENT_LENGTH 64
 #define PARAM_INDEX 2
 #define PARAM_VALUE_INDEX 3
-#define TEMP_PATH "/home/kristiyan/Fmi/OS/Homework02/Resourses/temp.txt"
 
 int charToInt(char c) {
     return c - '0';
@@ -21,14 +20,14 @@ int charToInt(char c) {
 struct Parameter getParameter(char *param) {
 
     char *path;
-    path = malloc(strlen(CONFIG_PATH) + ONE + strlen(param));
+    path = malloc(strlen(CONFIG_PATH) + 1 + strlen(param));
     strcpy(path, CONFIG_PATH);
     strcat(path, param);
 
     FILE *file = openFile(path, "r");
 
     if (file == NULL) {
-        err(WRONG_ARGUMENTS_CODE, "%s is not a valid parameter", param);
+        err(WRONG_ARGUMENTS_CODE, "%s is not a valid parameter\n", param);
     }
 
     char *line;
@@ -38,14 +37,13 @@ struct Parameter getParameter(char *param) {
 
     struct Parameter parameter;
 
-    parameter.parameter = param;
     parameter.segment = charToInt(line[0]);
 
     getline(&line, &len, file);
     parameter.position = charToInt(line[0]);
 
     getline(&line, &len, file);
-    parameter.validValues = line;
+    parameter.regex = line;
 
     return parameter;
 }
@@ -60,50 +58,17 @@ struct Position getPositionOfParameter(struct Parameter parameter, enum SegmentT
     position.metaBitPosition = parameter.position % META_LENGTH;
     position.metaByteParameterPosition = segmentByte + META_TYPE_LENGTH + (parameter.position % META_LENGTH);
     position.segmentType = type;
-    position.metaByteTypePosition = segmentByte;
 
     return position;
 }
 
-void print(int a) {
-    for (int i = 0; i < BITS_IN_BYTE; i++) {
-        printf("%d", ((a << i) & 0x80) != 0);
-    }
-    printf("\n");
-}
-
-void changeBitParameter(char *data, struct Position position, int toBit) {
-
-    char cPosition = (char) (META_LENGTH - position.metaBitPosition - 1);
-
-    char mask = (char) 1 << cPosition;
-
-    char c = data[position.metaByteParameterPosition];
-    print(data[position.metaByteParameterPosition]);
-
-    data[position.metaByteParameterPosition] = (char) ((c & ~mask) | ((toBit << cPosition) & mask));
-    print(data[position.metaByteParameterPosition]);
-}
-
-void finishTempFile(FILE *file, FILE *temp, char *fileName) {
-    char c;
-
-    while (fread(&c, ONE, ONE, file)) {
-        writeBytesToFile(&c, ONE, temp);
-    }
-
-    fclose(file);
-    fclose(temp);
-    remove(fileName);
-    rename(TEMP_PATH, fileName);
-}
 
 void replace(char *fileName, char *newValue, struct Position position, bool isCapital) {
 
     enum SegmentType type = position.segmentType;
 
     if (strlen(newValue) > type) {
-        err(WRONG_ARGUMENTS_CODE, "Maximum length of value is %zd. Current %d", strlen(newValue), type);
+        err(WRONG_ARGUMENTS_CODE, "Maximum length of value is %zd. Current %d\n", strlen(newValue), type);
     }
 
     FILE *file = openFileHandleError(fileName, READ_BINARY);
@@ -113,18 +78,18 @@ void replace(char *fileName, char *newValue, struct Position position, bool isCa
     readBytesFromFile(firstHalf, (size_t) position.dataBytePosition, file);
 
     if (!isCapital) {
-        changeBitParameter(firstHalf, position, ONE);
+        changeBitParameter(firstHalf, position, 1);
     }
 
     writeBytesToFile(firstHalf, sizeof(firstHalf), temp);
     writeBytesToFile(newValue, strlen(newValue), temp);
 
     for (size_t i = 0; i < type - strlen(newValue); i++)
-        writeBytesToFile("\0", ONE, temp);
+        writeBytesToFile("\0", 1, temp);
 
     fseek(file, type + position.dataBytePosition, SEEK_SET);
 
-    finishTempFile(file, temp, fileName);
+    replaceBytesFromFileToNew(file, temp, fileName);
 }
 
 enum SegmentType getSegmentType(char *path, struct Parameter parameter) {
@@ -132,7 +97,7 @@ enum SegmentType getSegmentType(char *path, struct Parameter parameter) {
     FILE *file = openFileHandleError(path, READ_BINARY);
     fseek(file, parameter.segment * SEGMENT_LENGTH + parameter.segment, SEEK_SET);
     char typeChar;
-    readBytesFromFile(&typeChar, ONE, file);
+    readBytesFromFile(&typeChar, 1, file);
     fclose(file);
 
     switch (typeChar) {
@@ -143,13 +108,13 @@ enum SegmentType getSegmentType(char *path, struct Parameter parameter) {
         case 2:
             return Byte;
         default:
-            err(INVALID_TYPE, "Invalid type: %u. Possible types: 0, 1, 2", typeChar);
+            err(INVALID_TYPE, "Invalid type: %u. Possible types: 0, 1, 2\n", typeChar);
     }
 }
 
 void assertEqualsNumberOfArguments(int actual, int expected) {
     if (expected != actual) {
-        err(WRONG_ARGUMENTS_CODE, "Wrong number of arguments! Current: %d, Desired: %d", actual, expected);
+        err(WRONG_ARGUMENTS_CODE, "Wrong number of arguments! Current: %d, Desired: %d\n", actual, expected);
     }
 }
 
@@ -162,48 +127,49 @@ struct Position executePosition(char *path, char *param) {
     return getPositionOfParameter(parameter, type);
 }
 
+//Sorry uncle Bob :(
+void readAndPrintParameter(char *filePath, char *param, bool isCapital) {
+
+    struct Position position = executePosition(filePath, param);
+    FILE *file = openFileHandleError(filePath, READ_BINARY);
+
+    if (checkIfBitOptionIsActive(file, position) || isCapital) {
+        printParameter(file, position);
+    }
+    fclose(file);
+}
+
+
+void matchParamValue(char *pattern, char *paramValue) {
+
+    regex_t re;
+    if (regcomp(&re, pattern, REG_EXTENDED | REG_NOSUB) != 0) {
+        err(WRONG_ARGUMENTS_CODE, "Couldn't compile regex. Pattern: %s", pattern);
+    }
+
+    int status = regexec(&re, paramValue, 0, NULL, 0);
+
+    regfree(&re);
+
+    if (status != 0) {
+        err(WRONG_ARGUMENTS_CODE, "Invalid parameter value: %s!\n", paramValue);
+    }
+}
+
 void executeCommandS(char *argv[], bool isCapital) {
 
     struct Position positionToReplace = executePosition(argv[FILE_INDEX], argv[PARAM_INDEX]);
-
     char *paramValue = argv[PARAM_VALUE_INDEX];
 
+    struct Parameter parameter = getParameter(argv[PARAM_INDEX]);
+    matchParamValue(parameter.regex, paramValue);
+
     if (strlen(paramValue) > positionToReplace.segmentType) {
-        err(WRONG_ARGUMENTS_CODE, "The maximum length of the parameter is: %d. Current: %zd",
+        err(WRONG_ARGUMENTS_CODE, "The maximum length of the parameter is: %d. Current: %zd\n",
             positionToReplace.segmentType, sizeof(paramValue));
     }
 
     replace(argv[FILE_INDEX], paramValue, positionToReplace, isCapital);
-}
-
-int checkIfOptionIsActive(FILE *file, struct Position position) {
-
-    fseek(file, position.metaByteParameterPosition, SEEK_SET);
-
-    char c;
-
-    readBytesFromFile(&c, 1, file);
-    fseek(file, 0, SEEK_SET);
-    return c & (1 << (META_LENGTH - position.metaBitPosition - 1));
-}
-
-void printParameter(FILE *file, struct Position position) {
-    fseek(file, position.dataBytePosition, SEEK_SET);
-
-    char c;
-
-    int maxCharsToRead = position.segmentType;
-    int charsRead = 0;
-
-    readBytesFromFile(&c, 1, file);
-
-    while (c && charsRead < maxCharsToRead) {
-        charsRead++;
-        printf("%c", c);
-        readBytesFromFile(&c, 1, file);
-    }
-    printf("\n");
-    fseek(file, 0, SEEK_SET);
 }
 
 void executeCommandG(char *argv[], bool isCapital) {
@@ -213,7 +179,7 @@ void executeCommandG(char *argv[], bool isCapital) {
     FILE *file = openFileHandleError(argv[FILE_INDEX], READ_BINARY);
 
     if (!isCapital) {
-        if (!checkIfOptionIsActive(file, position)) {
+        if (!checkIfBitOptionIsActive(file, position)) {
             fclose(file);
             err(ERROR_FILE_CODE, "Option not activated!");
         }
@@ -225,32 +191,24 @@ void executeCommandG(char *argv[], bool isCapital) {
 
 void executeCommandL(char *argv[], int argc, bool isCapital) {
 
+    if (argc % 2 == 1) {
+        err(WRONG_ARGUMENTS_CODE, "Number of arguments must be an even number! Number of arguments: %d\n", argc);
+    }
+
     if (argc == 2) {
         DIR *dir;
         struct dirent *ent;
-        if ((dir = opendir("/home/kristiyan/Fmi/OS/Homework02/config"))) {
+        if ((dir = opendir(CONFIG_DIR_PATH))) {
             while ((ent = readdir(dir)) != NULL) {
-                if (strlen(ent->d_name) <= 2)
+                if (!strcmp(ent->d_name, ".") || !strcmp(ent->d_name, ".."))
                     continue;
-
-                struct Position position = executePosition(argv[FILE_INDEX], ent->d_name);
-                FILE *file = openFileHandleError(argv[FILE_INDEX], READ_BINARY);
-
-                if (checkIfOptionIsActive(file, position) || isCapital) {
-                    printParameter(file, position);
-                }
+                readAndPrintParameter(argv[FILE_INDEX], ent->d_name, isCapital);
             }
         }
         closedir(dir);
-        return;
-    }
-
-    for (int i = 2; i < argc; ++i) {
-        struct Position position = executePosition(argv[FILE_INDEX], argv[i]);
-        FILE *file = openFileHandleError(argv[FILE_INDEX], READ_BINARY);
-
-        if (checkIfOptionIsActive(file, position) || isCapital) {
-            printParameter(file, position);
+    } else {
+        for (int i = 2; i < argc; ++i) {
+            readAndPrintParameter(argv[FILE_INDEX], argv[i], isCapital);
         }
     }
 }
@@ -259,7 +217,7 @@ void executeCommandB(char *argv[]) {
     char *paramValue = argv[PARAM_VALUE_INDEX];
 
     if (paramValue[0] != '0' && paramValue[0] != '1') {
-        err(WRONG_ARGUMENTS_CODE, "Parameter must be either 0 or 1!");
+        err(WRONG_ARGUMENTS_CODE, "Parameter must be either 0 or 1!\n");
     }
 
     struct Position position = executePosition(argv[FILE_INDEX], argv[PARAM_INDEX]);
@@ -276,20 +234,14 @@ void executeCommandB(char *argv[]) {
 
     fseek(file, position.dataBytePosition, SEEK_SET);
 
-    finishTempFile(file, temp, argv[FILE_INDEX]);
-}
-
-void kur(char *arr, char *path) {
-    readBytesFromFile(arr, 64, openFileHandleError(path, READ_BINARY));
+    replaceBytesFromFileToNew(file, temp, argv[FILE_INDEX]);
 }
 
 void executeCommandC(int argc, char *argv[]) {
 
-    FILE *file = openFileHandleError(argv[FILE_INDEX], OPEN_WRITE_BINARY);
+    int typesLength = (argc - 2) / 2;
 
-    int length = (argc - 2) / 2;
-
-    char arr[length][65];
+    char segmentsContent[typesLength][SEGMENT_LENGTH + 1];
 
     for (int i = 2; i < argc; i += 2) {
 
@@ -298,25 +250,27 @@ void executeCommandC(int argc, char *argv[]) {
 
         switch (type) {
             case 't':
-                kur(arr[index], "/home/kristiyan/Fmi/OS/Homework02/Resourses/def_text.bin");
+                readBytesFromPath(segmentsContent[index], SEGMENT_LENGTH, DEF_TEXT_FILE_PATH);
                 break;
             case 'n':
-                kur(arr[index], "/home/kristiyan/Fmi/OS/Homework02/Resourses/def_num.bin");
+                readBytesFromPath(segmentsContent[index], SEGMENT_LENGTH, DEF_NUM_FILE_PATH);
                 break;
             case 'b':
-                kur(arr[index], "/home/kristiyan/Fmi/OS/Homework02/Resourses/def_byte.bin");
+                readBytesFromPath(segmentsContent[index], SEGMENT_LENGTH, DEF_BYTE_FILE_PATH);
                 break;
 
             default:
-                break;
+                err(WRONG_ARGUMENTS_CODE, "Type: %c is not a valid parameter!\n", type);
         }
 
     }
 
-    for (int j = 0; j < length; ++j) {
-        writeBytesToFile(arr[j], 64, file);
-    }
+    FILE *file = openFileHandleError(argv[FILE_INDEX], WRITE_CREATE);
 
+    for (int j = 0; j < typesLength; ++j) {
+        writeBytesToFile(segmentsContent[j], SEGMENT_LENGTH, file);
+    }
+    fclose(file);
 }
 
 void executeCommand(int argc, char *argv[], enum ArgumentType argumentType) {
@@ -345,12 +299,13 @@ void executeCommand(int argc, char *argv[], enum ArgumentType argumentType) {
             executeCommandL(argv, argc, true);
             break;
         case b:
+            assertEqualsNumberOfArguments(argc, 4);
             executeCommandB(argv);
             break;
         case c:
             executeCommandC(argc, argv);
             break;
         default:
-            break;
+            err(WRONG_ARGUMENTS_CODE, "Invalid argument! Possible arguments: s, S, g, G, l, L, b, c, h\n");
     }
 }

@@ -1,3 +1,5 @@
+#pragma once
+
 enum ArgumentType {
     s,
     S,
