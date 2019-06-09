@@ -12,6 +12,7 @@
 #define SEGMENT_LENGTH 64
 #define PARAM_INDEX 2
 #define PARAM_VALUE_INDEX 3
+#define MAX_MATCHES 1
 
 int charToInt(char c) {
     return c - '0';
@@ -142,18 +143,23 @@ void readAndPrintParameter(char *filePath, char *param, bool isCapital) {
 
 void matchParamValue(char *pattern, char *paramValue) {
 
-    regex_t re;
-    if (regcomp(&re, pattern, REG_EXTENDED | REG_NOSUB) != 0) {
-        err(WRONG_ARGUMENTS_CODE, "Couldn't compile regex. Pattern: %s", pattern);
+    int rv;
+    regex_t exp;
+
+    rv = regcomp(&exp, pattern, REG_EXTENDED);
+    if (rv != 0) {
+        printf("regcomp failed with %d\n", rv);
     }
 
-    int status = regexec(&re, paramValue, 0, NULL, 0);
+    regmatch_t matches[MAX_MATCHES];
 
-    regfree(&re);
-
-    if (status != 0) {
-        err(WRONG_ARGUMENTS_CODE, "Invalid parameter value: %s!\n", paramValue);
+    if (regexec(&exp, paramValue, MAX_MATCHES, matches, 0) != 0 ||
+        matches[0].rm_so != 0 ||
+        matches[0].rm_eo != strlen(paramValue)) {
+        err(WRONG_ARGUMENTS_CODE, "Invalid argument: %s. Valid values must match: %s\n", paramValue, pattern);
     }
+
+    regfree(&exp);
 }
 
 void executeCommandS(char *argv[], bool isCapital) {

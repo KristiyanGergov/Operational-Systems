@@ -9,5 +9,4 @@ enum ArgumentType {
     L,
     b,
     c,
-    h
 };

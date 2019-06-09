@@ -39,8 +39,6 @@ enum ArgumentType getArgumentType(char *byte) {
             return b;
         case 'c':
             return c;
-        case 'h':
-            return h;
         default:
             err(WRONG_ARGUMENTS_CODE, "Invalid argument: %u. Possible arguments: s, S, g, G, l, L, b, c, h", byte[1]);
     }
@@ -71,7 +69,7 @@ int notMain(int argc, char *argv[]) {
 
 int main() {
 
-    char* argv[] = {"/home/kristiyan/Fmi/OS/Homework02/Resourses/text.bin", "-s", "device_name", "$@#R"};
+    char* argv[] = {"/home/kristiyan/Fmi/OS/Homework02/Resourses/text.bin", "-s", "device_name", "Device_n1"};
     notMain(4, argv);
 
 //    char *argv[] = {"/home/kristiyan/Fmi/OS/Homework02/Resourses/new.bin" ,"-c", "0", "t", "1", "b", "2", "t", "3", "n"};

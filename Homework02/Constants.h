@@ -16,6 +16,7 @@
 
 #define WRITE_CREATE "w+"
 
+//todo
 #define CONFIG_DIR_PATH "/home/kristiyan/Fmi/OS/Homework02/config"
 
 #define DEF_TEXT_FILE_PATH "/home/kristiyan/Fmi/OS/Homework02/Resourses/def_text.bin"
