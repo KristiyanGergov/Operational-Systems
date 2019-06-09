@@ -55,7 +55,7 @@ struct Position getPositionOfParameter(struct Parameter parameter, enum SegmentT
 
     struct Position position;
 
-    int segmentByte = SEGMENT_LENGTH * parameter.segment + parameter.segment;
+    int segmentByte = SEGMENT_LENGTH * parameter.segment;
 
     position.dataBytePosition = segmentByte + META_LENGTH + (parameter.position * type);
     position.metaBitPosition = parameter.position % META_LENGTH;
@@ -98,7 +98,7 @@ void replace(char *fileName, char *newValue, struct Position position, bool isCa
 enum SegmentType getSegmentType(char *path, struct Parameter parameter) {
 
     FILE *file = openFileHandleError(path, READ_BINARY);
-    fseek(file, parameter.segment * SEGMENT_LENGTH + parameter.segment, SEEK_SET);
+    fseek(file, parameter.segment * SEGMENT_LENGTH, SEEK_SET);
     char typeChar;
     readBytesFromFile(&typeChar, 1, file);
     fclose(file);

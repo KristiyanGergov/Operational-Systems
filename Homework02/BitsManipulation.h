@@ -23,6 +23,5 @@ int checkIfBitOptionIsActive(FILE *file, struct Position position) {
     char c;
 
     readBytesFromFile(&c, 1, file);
-    fseek(file, 0, SEEK_SET);
     return c & (1 << (META_LENGTH - position.metaBitPosition - 1));
 }
