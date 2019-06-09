@@ -10,8 +10,10 @@
 
 #define META_TYPE_LENGTH 1
 #define SEGMENT_LENGTH 64
-#define PARAM_INDEX 2
-#define PARAM_VALUE_INDEX 3
+#define FILE_INDEX 1
+#define ARGUMENT_INDEX 2
+#define PARAM_INDEX 3
+#define PARAM_VALUE_INDEX 4
 #define MAX_MATCHES 1
 
 int charToInt(char c) {
@@ -187,7 +189,7 @@ void executeCommandG(char *argv[], bool isCapital) {
     if (!isCapital) {
         if (!checkIfBitOptionIsActive(file, position)) {
             fclose(file);
-            err(ERROR_FILE_CODE, "Option not activated!");
+            err(ERROR_FILE_CODE, "Option not activated!\n");
         }
     }
 
@@ -197,11 +199,11 @@ void executeCommandG(char *argv[], bool isCapital) {
 
 void executeCommandL(char *argv[], int argc, bool isCapital) {
 
-    if (argc % 2 == 1) {
-        err(WRONG_ARGUMENTS_CODE, "Number of arguments must be an even number! Number of arguments: %d\n", argc);
+    if (argc % 2 == 0) {
+        err(WRONG_ARGUMENTS_CODE, "Number of arguments must be an odd number! Number of arguments: %d\n", argc);
     }
 
-    if (argc == 2) {
+    if (argc == 3) {
         DIR *dir;
         struct dirent *ent;
         if ((dir = opendir(CONFIG_DIR_PATH))) {
@@ -213,7 +215,7 @@ void executeCommandL(char *argv[], int argc, bool isCapital) {
         }
         closedir(dir);
     } else {
-        for (int i = 2; i < argc; ++i) {
+        for (int i = 3; i < argc; ++i) {
             readAndPrintParameter(argv[FILE_INDEX], argv[i], isCapital);
         }
     }
@@ -245,11 +247,11 @@ void executeCommandB(char *argv[]) {
 
 void executeCommandC(int argc, char *argv[]) {
 
-    int typesLength = (argc - 2) / 2;
+    int typesLength = (argc - 3) / 2;
 
     char segmentsContent[typesLength][SEGMENT_LENGTH + 1];
 
-    for (int i = 2; i < argc; i += 2) {
+    for (int i = 3; i < argc; i += 2) {
 
         int index = charToInt(argv[i][0]);
         char type = argv[i + 1][0];
@@ -283,19 +285,19 @@ void executeCommand(int argc, char *argv[], enum ArgumentType argumentType) {
 
     switch (argumentType) {
         case s:
-            assertEqualsNumberOfArguments(argc, 4);
+            assertEqualsNumberOfArguments(argc, 5);
             executeCommandS(argv, false);
             break;
         case S:
-            assertEqualsNumberOfArguments(argc, 4);
+            assertEqualsNumberOfArguments(argc, 5);
             executeCommandS(argv, true);
             break;
         case g:
-            assertEqualsNumberOfArguments(argc, 3);
+            assertEqualsNumberOfArguments(argc, 4);
             executeCommandG(argv, false);
             break;
         case G:
-            assertEqualsNumberOfArguments(argc, 3);
+            assertEqualsNumberOfArguments(argc, 4);
             executeCommandG(argv, true);
             break;
         case l:
@@ -305,7 +307,7 @@ void executeCommand(int argc, char *argv[], enum ArgumentType argumentType) {
             executeCommandL(argv, argc, true);
             break;
         case b:
-            assertEqualsNumberOfArguments(argc, 4);
+            assertEqualsNumberOfArguments(argc, 5);
             executeCommandB(argv);
             break;
         case c:

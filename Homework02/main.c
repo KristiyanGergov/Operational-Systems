@@ -46,11 +46,11 @@ enum ArgumentType getArgumentType(char *byte) {
 
 void handleArguments(int argc, char *argv[]) {
 
-    if (strcmp(argv[0], "-h") == 0) {
+    if (strcmp(argv[FILE_INDEX], "-h") == 0) {
         printArgumentsHelp();
     } else {
 
-        if (argc < 2) {
+        if (argc < 3) {
             errx(WRONG_ARGUMENTS_CODE, "Invalid number of parameters");
         }
 
@@ -62,16 +62,15 @@ void handleArguments(int argc, char *argv[]) {
 }
 
 int notMain(int argc, char *argv[]) {
-
     handleArguments(argc, argv);
     return 0;
 }
 
 int main() {
 
-    char* argv[] = {"/home/kristiyan/Fmi/OS/Homework02/Resourses/text.bin", "-s", "device_name", "Device_n1"};
+    char* argv[] = {"asdf", "/home/kristiyan/Fmi/OS/Homework02/Resourses/tt.bin", "-G", "audio_bitrate"};
     notMain(4, argv);
-
+//
 //    char *argv[] = {"/home/kristiyan/Fmi/OS/Homework02/Resourses/new.bin" ,"-c", "0", "t", "1", "b", "2", "t", "3", "n"};
 //    notMain(10, argv);
 }

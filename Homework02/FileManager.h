@@ -13,7 +13,7 @@ FILE *openFileHandleError(char *path, char *modes) {
     FILE *file = openFile(path, modes);
 
     if (file == NULL) {
-        err(ERROR_FILE_CODE, "Could't open file in read mode! File: %s", path);
+        err(ERROR_FILE_CODE, "Could't open file in read mode! File: %s\n", path);
     }
 
     return file;
@@ -24,7 +24,7 @@ void readBytesFromFile(char *buffer, size_t bytesCount, FILE *file) {
 
     if (items_read == 0) {
         fclose(file);
-        err(ERROR_FILE_CODE, "Error while reading from file!");
+        err(ERROR_FILE_CODE, "Error while reading from file!\n");
     }
 }
 
@@ -37,8 +37,6 @@ void readBytesFromPath(char *arr, size_t bytesCount, char *path) {
 void writeBytesToFile(char *buffer, size_t bytesCount, FILE *file) {
     fwrite(buffer, bytesCount, 1, file);
 }
-
-
 
 void replaceBytesFromFileToNew(FILE *file, FILE *newFile, char *fileName) {
     char c;
