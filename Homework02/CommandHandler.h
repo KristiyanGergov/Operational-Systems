@@ -206,7 +206,7 @@ void executeCommandL(char *argv[], int argc, bool isCapital) {
     if (argc == 3) {
         DIR *dir;
         struct dirent *ent;
-        if ((dir = opendir(CONFIG_DIR_PATH))) {
+        if ((dir = opendir(CONFIG_PATH))) {
             while ((ent = readdir(dir)) != NULL) {
                 if (!strcmp(ent->d_name, ".") || !strcmp(ent->d_name, ".."))
                     continue;
