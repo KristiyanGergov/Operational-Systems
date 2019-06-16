@@ -12,10 +12,10 @@
 
 #define WRITE_CREATE "w+"
 
-#define DEF_TEXT_FILE_PATH "./Resourses/def_text.bin"
+#define DEF_TEXT_FILE_PATH "./Resources/def_text.bin"
 
-#define DEF_NUM_FILE_PATH "./Resourses/def_num.bin"
+#define DEF_NUM_FILE_PATH "./Resources/def_num.bin"
 
-#define DEF_BYTE_FILE_PATH "./Resourses/def_byte.bin"
+#define DEF_BYTE_FILE_PATH "./Resources/def_byte.bin"
 
-#define TEMP_PATH "./Resourses/temp.txt"
+#define TEMP_PATH "./Resources/temp.txt"

@@ -7,14 +7,14 @@
 #include "CommandHandler.h"
 
 void printArgumentsHelp() {
-    int fd = open("./Help.txt", O_RDONLY);
-    //todo
+    FILE *file = openFileHandleError("./Resources/Help.txt", "r");
+
     char c;
-    while (read(fd, &c, 1)) {
+    while (fread(&c, 1, 1, file)) {
         printf("%c", c);
     }
 
-    close(fd);
+    fclose(file);
 }
 
 enum ArgumentType getArgumentType(char *byte) {
