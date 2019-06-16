@@ -1,10 +1,24 @@
 #include <semaphore.h>
 #include <stdarg.h>
 #include <sys/mman.h>
-#include <bits/fcntl-linux.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
 #include "comm.h"
+
+#define SEM_MUTEX_NAME "/sem-mutex"
+#define SEM_SPOOL_SIGNAL_NAME "/sem-spool-signal"
+#define SHARED_MEM_NAME "/posix-shared-mem-example"
+#define SEM_BANK_NAME "/sem-bank"
+
+struct Semaphore {
+    char *shared_mem_ptr;
+    sem_t *mutex_sem;
+    sem_t *spool_signal_sem;
+    sem_t *take_from_bank_sem;
+    int fd_shm;
+};
+
 
 int open_shm(int flag, mode_t mode) {
     int fd_shm;

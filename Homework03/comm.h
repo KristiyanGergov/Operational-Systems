@@ -7,10 +7,7 @@
 #include <stdint.h>
 #include "err.h"
 
-#define SEM_MUTEX_NAME "/sem-mutex"
-#define SEM_SPOOL_SIGNAL_NAME "/sem-spool-signal"
-#define SHARED_MEM_NAME "/posix-shared-mem-example"
-#define SEM_BANK_NAME "/sem-bank"
+#define CREATE_MODE 0660
 
 uint8_t isValidAccount[128];
 
