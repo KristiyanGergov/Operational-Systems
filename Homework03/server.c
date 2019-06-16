@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include "semaphore.c"
+#include "file_handler.c"
 
 #define true 1
 
@@ -11,7 +12,7 @@ void validateArguments(int argc) {
     }
 }
 
-int createEmptyFile(char *fileName, uint32_t *bank) {
+int createEmptyFile(char *fileName, uint32_t* bank) {
 
     int fd = open(fileName, O_CREAT | O_RDWR, CREATE_MODE);
     for (int i = 0; i < 8; ++i) {
@@ -21,10 +22,12 @@ int createEmptyFile(char *fileName, uint32_t *bank) {
             error("Could not write the numbers to the file.");
         }
         bank[i] = 0;
+
     }
 
     return fd;
 }
+
 
 int main(int argc, char *argv[]) {
 
@@ -41,36 +44,20 @@ int main(int argc, char *argv[]) {
     } else {
         fd = open(fileName, O_RDWR);
         int bytesRead = read(fd, &bank, 8 * 4);
-        if (bytesRead != 8 * 4) {
+        if (bytesRead != 8 * 4)
             error("Could not read the numbers from the file");
-        }
-
     }
 
     struct Semaphore semaphore;
 
     char buff[256];
 
-    //  mutual exclusion semaphore, mutex_sem with an initial value 0.
-    semaphore.mutex_sem = open_sem(SEM_MUTEX_NAME, O_CREAT, CREATE_MODE, 0);
+    initSemaphore(&semaphore, O_CREAT, CREATE_MODE, O_RDWR | O_CREAT);
 
-    // Get shared memory
-    semaphore.fd_shm = open_shm(O_RDWR | O_CREAT, CREATE_MODE);
 
-    semaphore.shared_mem_ptr = mmap(NULL, 256, PROT_READ | PROT_WRITE, MAP_SHARED, semaphore.fd_shm, 0);
-
-    // counting semaphore, indicating the number of strings to be printed. Initial value = 0
-    semaphore.spool_signal_sem = open_sem(SEM_SPOOL_SIGNAL_NAME, O_CREAT, CREATE_MODE, 0);
-
-    semaphore.take_from_bank_sem = open_sem(SEM_BANK_NAME, O_CREAT, CREATE_MODE, 0);
-
-    // Initialization complete; now we can set mutex semaphore as 1 to
-    // indicate shared memory segment is available
     post_sem(semaphore.mutex_sem, "mutex_sem");
 
-// ne rabotqt davaneto na otricatelno chislo + sled towa wsichki dawat invalid account
     while (true) {
-        // Is there a string to print? P (spool_signal_sem);
         wait_sem(semaphore.spool_signal_sem, "spool_signal_sem");
 
         strcpy(buff, semaphore.shared_mem_ptr);
@@ -128,6 +115,5 @@ int main(int argc, char *argv[]) {
             }
         }
         post_sem(semaphore.take_from_bank_sem, "take_from_bank_sem");
-
     }
 }

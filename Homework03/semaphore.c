@@ -56,3 +56,17 @@ void wait_sem(sem_t *sem, char *r) {
         error(strcat("sem_wait: ", r));
     }
 }
+
+void initSemaphore(struct Semaphore *semaphore, int semFlags, int semMode, int shmFlag){
+
+    semaphore->mutex_sem = open_sem(SEM_MUTEX_NAME, 0, semFlags, semMode);
+
+    semaphore->fd_shm = open_shm(shmFlag, 0);
+
+    semaphore->shared_mem_ptr = mmap(NULL, 256, PROT_READ | PROT_WRITE, MAP_SHARED, semaphore->fd_shm, 0);
+
+    
+    semaphore->spool_signal_sem = open_sem(SEM_SPOOL_SIGNAL_NAME, semFlags, semMode, 0);
+
+    semaphore->take_from_bank_sem = open_sem(SEM_BANK_NAME, O_CREAT, CREATE_MODE, 0);
+}

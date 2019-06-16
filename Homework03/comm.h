@@ -21,9 +21,6 @@ void initValidAccount() {
     }
 }
 
-int fileExist(char *filename) {
-    return access(filename, F_OK) != -1;
-}
 
 void error(char *msg) {
     err(-1, "%s", msg);
