@@ -1,66 +1,48 @@
-#include <sys/types.h>
-#include <fcntl.h>
-#include "semaphore.c"
-#include <sys/mman.h>
+#include "sem_service.c"
 
-void validateArguments(int argc, char *argv[]) {
-    if (argc != 2) {
-        error("The client takes exactly one argument. Namely the bank identifier");
-    }
 
-    if (strlen(argv[1]) != 2) {
-        error("Invalid id");
-    }
+void init_transaction(struct BankSystem bankSystem, struct User user) {
+
+    memcpy(bankSystem.user, &user, sizeof(struct User));
+
+    post_sem(bankSystem.notify_sem, "notify_sem");
+
+    wait_sem(bankSystem.bank_sem, "bank_sem");
+
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char **argv) {
 
-    validateArguments(argc, argv);
+    validateClientInput(argc, argv);
 
-    struct Semaphore semaphore;
+    char accId = argv[FIRST_ARGUMENT_INDEX][0];
 
-    initSemaphore(&semaphore, 0, 0, O_RDWR);
+    struct BankSystem bankSystem;
 
-    wait_sem(semaphore.mutex_sem, "mutex_sem");
+    initClientSemaphore(&bankSystem);
 
-    sprintf(semaphore.shared_mem_ptr, "%s", argv[1]);
+    struct User user = createUser(accId);
 
-    post_sem(semaphore.spool_signal_sem, "spool_signal_sem");
+    init_transaction(bankSystem, user);
 
-    wait_sem(semaphore.take_from_bank_sem, "take_from_bank");
+    printf("Account: %c. Balance: %u. Enter amount: ", accId, bankSystem.user->balance);
 
-    if (semaphore.shared_mem_ptr[0] == '-') {
+    if (scanf("%d", &user.amount) < 0) {
+        post_sem(bankSystem.mutex, "mutex");
 
-        post_sem(semaphore.mutex_sem, "mutex_sem");
-
-        munmap(semaphore.shared_mem_ptr, 256);
-        error("Invalid account number!");
-    } else {
-        printf("Account %s has %s left in it. What transaction would you like to make:\n", argv[1],
-               semaphore.shared_mem_ptr);
+        error("Failed to get the desired amount.");
     }
 
-    char buff[16];
-    if (fgets(buff, 16, stdin) == NULL) {
-        error("Failed to get the desired amount");
+    init_transaction(bankSystem, user);
+
+    if (bankSystem.user->amount == -1) {
+        post_sem(bankSystem.mutex, "mutex");
+
+        error("Not enough funds to make the transaction.");
     }
 
-    sprintf(semaphore.shared_mem_ptr, "%s", buff);
+    post_sem(bankSystem.mutex, "mutex");
 
-    post_sem(semaphore.spool_signal_sem, "spool_signal_sem");
-
-    wait_sem(semaphore.take_from_bank_sem, "take_from_bank");
-
-    if (semaphore.shared_mem_ptr[0] == '-') {
-
-        post_sem(semaphore.mutex_sem, "mutex_sem");
-
-        munmap(semaphore.shared_mem_ptr, 256);
-        error("Invalid amount! Could not make the transaction");
-    }
-
-    post_sem(semaphore.mutex_sem, "mutex_sem");
-
-    munmap(semaphore.shared_mem_ptr, 256);
+    printf("Transaction completed successfully.\n");
     exit(0);
 }

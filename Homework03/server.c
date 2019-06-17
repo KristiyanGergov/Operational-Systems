@@ -1,119 +1,72 @@
-#include <sys/types.h>
-#include <fcntl.h>
-#include <sys/mman.h>
-#include "semaphore.c"
 #include "file_handler.c"
+#include "sem_service.c"
 
-#define true 1
+void fail_transaction(struct User user, struct BankSystem semaphore) {
+    printf("Failed transaction for user: %c\n", user.account);
 
-void validateArguments(int argc) {
-    if (argc != 2) {
-        error("You need to provide only the name of the file to read data from!");
-    }
+    user.amount = -1;
+    memcpy(semaphore.user, &user, sizeof(struct User));
+
+    post_sem(semaphore.bank_sem, "bank_sem");
 }
 
-int createEmptyFile(char *fileName, uint32_t* bank) {
+void init_transaction(struct BankSystem semaphore, struct User user) {
+    printf("Initiating transaction for user: %c\n", user.account);
 
-    int fd = open(fileName, O_CREAT | O_RDWR, CREATE_MODE);
-    for (int i = 0; i < 8; ++i) {
-        uint32_t temp = 0;
-        uint32_t size = write(fd, &temp, 4);
-        if (size != 4) {
-            error("Could not write the numbers to the file.");
-        }
-        bank[i] = 0;
+    memcpy(semaphore.user, &user, sizeof(struct User));
 
-    }
+    post_sem(semaphore.bank_sem, "bank_sem");
 
-    return fd;
+    wait_sem(semaphore.notify_sem, "notify_sem");
 }
-
 
 int main(int argc, char *argv[]) {
 
-    validateArguments(argc);
+    validateServerInput(argc);
 
-    initValidAccount();
+    uint32_t bank[8] = {0};
 
-    uint32_t bank[8];
-    int fd;
+    int fd = read_or_default_file(argv[FIRST_ARGUMENT_INDEX], bank);
 
-    char *fileName = argv[1];
-    if (!fileExist(fileName)) {
-        fd = createEmptyFile(fileName, bank);
-    } else {
-        fd = open(fileName, O_RDWR);
-        int bytesRead = read(fd, &bank, 8 * 4);
-        if (bytesRead != 8 * 4)
-            error("Could not read the numbers from the file");
-    }
+    struct BankSystem semaphore;
 
-    struct Semaphore semaphore;
+    printf("Initiating bank system. \n");
+    initServerSemaphore(&semaphore);
+    printf("Bank system successfully initiated. \n");
 
-    char buff[256];
+    while (1) {
+        printf("Waiting for input from user.\n");
+        wait_sem(semaphore.notify_sem, "notify_sem");
 
-    initSemaphore(&semaphore, O_CREAT, CREATE_MODE, O_RDWR | O_CREAT);
+        struct User user = createUser(semaphore.user->account);
 
+        int index = user.accIndex;
+        user.balance = bank[index];
 
-    post_sem(semaphore.mutex_sem, "mutex_sem");
+        init_transaction(semaphore, user);
 
-    while (true) {
-        wait_sem(semaphore.spool_signal_sem, "spool_signal_sem");
+        int32_t amount = semaphore.user->amount;
 
-        strcpy(buff, semaphore.shared_mem_ptr);
-        char account = buff[1];
-        uint8_t indexForValid = (uint8_t) account;
-        uint8_t index = account - 65;
-
-        if (!isValidAccount[indexForValid]) {
-            sprintf(buff, "%d", -1);
-            strcpy(semaphore.shared_mem_ptr, buff);
-
-            post_sem(semaphore.take_from_bank_sem, "take_from_bank_sem");
-
+        if (amount > INT16_MAX || amount < INT16_MIN) {
+            fail_transaction(user, semaphore);
             continue;
         } else {
-            sprintf(buff, "%d", bank[index]);
-            strcpy(semaphore.shared_mem_ptr, buff);
-        }
-
-        post_sem(semaphore.take_from_bank_sem, "take_from_bank_sem");
-
-        wait_sem(semaphore.spool_signal_sem, "spool_signal_sem");
-
-        long mult = 1;
-        if (semaphore.shared_mem_ptr[0] == '-') {
-            semaphore.shared_mem_ptr++;
-            mult = -1;
-        }
-
-        long toAdd = strtol(semaphore.shared_mem_ptr, NULL, 10);
-        if (toAdd > UINT16_MAX) {
-            sprintf(buff, "%d", -1);
-            strcpy(semaphore.shared_mem_ptr, buff);
-
-            post_sem(semaphore.take_from_bank_sem, "take_from_bank_sem");
-
-            continue;
-        } else {
-            toAdd *= mult;
-            if ((long) bank[index] + toAdd < 0 || (long) bank[index] + toAdd > UINT32_MAX) {
-                sprintf(buff, "%d", -1);
-                strcpy(semaphore.shared_mem_ptr, buff);
-
-                post_sem(semaphore.take_from_bank_sem, "take_from_bank_sem");
-
+            int64_t result = (int64_t) bank[index] + (int64_t) amount;
+            if (result < 0 || result > UINT32_MAX) {
+                fail_transaction(user, semaphore);
                 continue;
             } else {
-                bank[index] += toAdd;
-                sprintf(semaphore.shared_mem_ptr, "%s", "success");
+                user.amount = 0;
+                bank[index] += amount;
+
+                memcpy(semaphore.user, &user, sizeof(struct User));
+
                 lseek(fd, 0, SEEK_SET);
-                int size = write(fd, &bank, 8 * 4);
-                if (size != 8 * 4) {
-                    error("Failed to write to file");
-                }
+                write_bytes_to_fd(fd, bank, FILE_LENGTH);
+                printf("Completed transaction successfully for user: %c\n.", user.account);
             }
         }
-        post_sem(semaphore.take_from_bank_sem, "take_from_bank_sem");
+
+        post_sem(semaphore.bank_sem, "bank_sem");
     }
 }

@@ -4,39 +4,51 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include "comm.h"
 
-FILE *open_file(char *path, char *modes) {
-    FILE *file = fopen(path, modes);
+#define FILE_LENGTH 32
 
-    if (file == NULL) {
-        error(strcat("Could't open file in read mode! File: %s\n", path));
+int open_file(char *path, int flags) {
+    int fd;
+    if ((fd = open(path, flags)) == -1) {
+        error(strcat("Error while opening file: ", path));
     }
 
-    return file;
+    return fd;
 }
 
-size_t readBytesFromFile(uint32_t *buffer, size_t bytesCount, size_t memb, FILE *file) {
-    size_t items_read = fread(buffer, bytesCount, memb, file);
+int fileExist(char *path) {
+    return access(path, F_OK) != -1;
+}
 
-    if (items_read == 0 || items_read != memb) {
-        fclose(file);
-        err(1, "Error while reading from file!\n Files read %ld   %ld", items_read, bytesCount);
+void write_bytes_to_fd(int fd, uint32_t *file, size_t bytesToWrite) {
+    size_t bytesWritten = write(fd, file, bytesToWrite);
+
+    if (bytesWritten != bytesToWrite)
+        error("Error while writing bytes to file.");
+}
+
+void read_bytes_from_fd(int fd, uint32_t *bank) {
+
+    ssize_t bytesRead = read(fd, bank, FILE_LENGTH);
+    if (bytesRead != FILE_LENGTH)
+        error("Error while reading bytes from file.");
+}
+
+int read_or_default_file(char *path, uint32_t *bank) {
+
+    int fd;
+
+    if (!fileExist(path)) {
+        fd = open_file(path, O_CREAT);
+        uint32_t temp;
+        write_bytes_to_fd(fd, &temp, FILE_LENGTH);
+
+    } else {
+        fd = open_file(path, O_RDWR);
+        read_bytes_from_fd(fd, bank);
     }
-    return items_read;
-}
 
-size_t writeBytesToFile(uint32_t *buffer, size_t bytesCount, size_t memb, FILE *file) {
-    size_t bytesWritten = fwrite(buffer, bytesCount, memb, file);
-
-    if (bytesWritten != bytesCount * memb) {
-        fclose(file);
-        error("Error while writing to file!\n");
-    }
-
-    return bytesWritten;
-}
-
-int fileExist(char *filename) {
-    return access(filename, F_OK) != -1;
+    return fd;
 }
