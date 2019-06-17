@@ -73,47 +73,48 @@ struct User *map(int fd_shm) {
     return user;
 }
 
-void initClientSemaphore(struct BankSystem *semaphore) {
+void initClientSystem(struct BankSystem *bankSystem) {
 
-    semaphore->mutex = open_sem(SEM_MUTEX, O_RDWR, 0000, -1);
+    bankSystem->mutex = open_sem(SEM_MUTEX, O_RDWR, 0000, -1);
 
-    wait_sem(semaphore->mutex, "mutex");
+    wait_sem(bankSystem->mutex, "mutex");
 
-    semaphore->fd_shm = open_shm(O_RDWR, 0);
+    bankSystem->fd_shm = open_shm(O_RDWR, 0);
 
-    if (ftruncate(semaphore->fd_shm, sizeof(struct User)) < 0)
+    if (ftruncate(bankSystem->fd_shm, sizeof(struct User)) < 0)
         error("Error while setting shared memory!");
 
-    semaphore->user = map(semaphore->fd_shm);
+    bankSystem->user = map(bankSystem->fd_shm);
 
-    semaphore->notify_sem = open_sem(SEM_NOTIFY, O_RDWR, 0000, -1);
+    bankSystem->notify_sem = open_sem(SEM_NOTIFY, O_RDWR, 0000, -1);
 
-    semaphore->bank_sem = open_sem(SEM_BANK, O_RDWR, 0000, -1);
+    bankSystem->bank_sem = open_sem(SEM_BANK, O_RDWR, 0000, -1);
 }
 
-void initServerSemaphore(struct BankSystem *semaphore) {
+void initServerSystem(struct BankSystem *bankSystem) {
 
 
-    if ((semaphore->mutex = sem_open(SEM_MUTEX, O_CREAT, 0660, 0)) == SEM_FAILED) {
+    if ((bankSystem->mutex = sem_open(SEM_MUTEX, O_CREAT, 0660, 0)) == SEM_FAILED) {
         error("Error while opening semaphore.");
     }
 
-    sem_init(semaphore->mutex, 1, 0);
+    sem_init(bankSystem->mutex, 1, 0);
 
-    semaphore->fd_shm = open_shm(O_RDWR | O_CREAT, 0660);
+    bankSystem->fd_shm = open_shm(O_RDWR | O_CREAT, 0660);
 
-    if (ftruncate(semaphore->fd_shm, sizeof(struct User)) < 0)
+    if (ftruncate(bankSystem->fd_shm, sizeof(struct User)) < 0) {
         error("Error while setting shared memory!");
+    }
 
-    semaphore->user = map(semaphore->fd_shm);
+    bankSystem->user = map(bankSystem->fd_shm);
 
-    semaphore->notify_sem = open_sem(SEM_NOTIFY, O_CREAT, 0660, 0);
+    bankSystem->notify_sem = open_sem(SEM_NOTIFY, O_CREAT, 0660, 0);
 
-    sem_init(semaphore->notify_sem, 1, 0);
+    sem_init(bankSystem->notify_sem, 1, 0);
 
-    semaphore->bank_sem = open_sem(SEM_BANK, O_CREAT, 0660, 0);
+    bankSystem->bank_sem = open_sem(SEM_BANK, O_CREAT, 0660, 0);
 
-    sem_init(semaphore->bank_sem, 1, 0);
+    sem_init(bankSystem->bank_sem, 1, 0);
 
-    post_sem(semaphore->mutex, "mutex");
+    post_sem(bankSystem->mutex, "mutex");
 }

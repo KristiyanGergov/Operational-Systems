@@ -23,6 +23,7 @@ struct User createUser(char accountId) {
     user.amount = 0;
     user.account = accountId;
     user.accIndex = accountId - 'A';
+    user.result = 0;
 
     return user;
 }

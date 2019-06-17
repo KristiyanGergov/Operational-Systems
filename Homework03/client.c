@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
 
     struct BankSystem bankSystem;
 
-    initClientSemaphore(&bankSystem);
+    initClientSystem(&bankSystem);
 
     struct User user = createUser(accId);
 
@@ -30,12 +30,12 @@ int main(int argc, char **argv) {
     if (scanf("%d", &user.amount) < 0) {
         post_sem(bankSystem.mutex, "mutex");
 
-        error("Failed to get the desired amount.");
+        error("Failed while reading user amount.");
     }
 
     init_transaction(bankSystem, user);
 
-    if (bankSystem.user->amount == -1) {
+    if (bankSystem.user->result == 0) {
         post_sem(bankSystem.mutex, "mutex");
 
         error("Not enough funds to make the transaction.");
